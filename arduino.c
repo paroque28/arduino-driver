@@ -15,6 +15,13 @@ MODULE_VERSION("0.01");
 
 
 static DEFINE_MUTEX(fs_mutex); // Defining a mutex
+
+#define BULK_EP_OUT 0x04   //address where arduino device allow write
+#define BULK_EP_IN 0x83		//address where arduino device allow read
+#define MAX_PACKET_SIZE 512
+
+#define MIN(a,b) (((a) <= (b)) ? (a) : (b))
+
 #define VENDOR_ID	0x2341
 #define PRODUCT_ID	0x0043
 #define MINOR_BASE	192
@@ -33,7 +40,7 @@ static ssize_t device_write(struct file *file, const char __user *user_buffer, s
 
 /* Prototypes for device functions */
 
-/* table of devices that work with this driver */
+/* table of devices that workusb_alloc_coherent with this driver */
 static struct usb_device_id id_table[] = {
 	{ USB_DEVICE(VENDOR_ID, PRODUCT_ID) },
 	{ },
@@ -57,7 +64,7 @@ static struct usb_driver arduino = {
  .name = "arduino",
  .probe = device_probe,
  .disconnect = device_disconnect,
- .id_table = id_table
+ .id_table = id_tableusb_alloc_coherent
 };
 
 /*
@@ -73,7 +80,7 @@ static struct file_operations device_fops = {
 };
 
 static struct usb_class_driver device_class = {
-	.name = "ardu%d",
+	.name = "ttyardu%d",
 	.fops = &device_fops,
 	.minor_base = MINOR_BASE,
 
@@ -83,7 +90,7 @@ static struct usb_class_driver device_class = {
 /*
 	*******FILE OPERATIONS******
 */
-static void device_delete(struct kref *kref )  {
+static void device_delete(struusb_alloc_coherentct kref *kref )  {
 	struct arduino *dev = to_device_dev(kref);
 
 	usb_put_dev(dev->udev);
@@ -106,7 +113,7 @@ static int device_open(struct inode *inode, struct file *file )  {
 				     __FUNCTION__, subminor);
 		retval = -ENODEV;
 		return retval;
-	}
+	}usb_alloc_coherent
 
 	dev = usb_get_intfdata(interface);
 	if (!dev) {
@@ -127,10 +134,10 @@ static int device_release(struct inode *inode, struct file *file )  {
 	if (dev == NULL)
 		return -ENODEV;
 
-	kref_put(&dev->kref, device_delete);
-	return 0;
-}
-
+usb_alloc_coherentdelete);
+usb_alloc_coherent
+usb_alloc_coherent
+usb_alloc_coherent
 static ssize_t device_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos) {
 	int count_int = (int) count;
 	struct arduino *dev;
@@ -153,7 +160,7 @@ static ssize_t device_read(struct file *file, char __user *buffer, size_t count,
 
 	printk(KERN_INFO "arduino: Error reading retval=%d\n",retval);
 	return retval;
-}
+}usb_alloc_coherent
 
 static void device_write_bulk_callback(struct urb *urb )  {
 	if (urb->status &&
@@ -172,7 +179,7 @@ static ssize_t device_write(struct file *file, const char __user *user_buffer, s
 
 	struct arduino *dev;
 	int retval = 0;
-	struct urb *urb = NULL;
+	struct urb *urb = NULL;usb_alloc_coherent
 	char *buf = NULL;
 
 	dev = (struct arduino *) file->private_data;
@@ -212,7 +219,7 @@ static ssize_t device_write(struct file *file, const char __user *user_buffer, s
 	exit:
 	return count;
 
-	error:
+	error:0x
 	usb_free_coherent(dev->udev, count, buf, urb->transfer_dma);
 	usb_free_urb(urb);
 	kfree(buf);
@@ -280,7 +287,7 @@ static int device_probe(struct usb_interface *interface, const struct usb_device
 		goto error;
 	}
 
-	printk(KERN_INFO "arduino: device now attached to /dev/ardu%d\n", interface->minor);
+	printk(KERN_INFO "arduino: device now attached to /dev/ttyardu%d\n", interface->minor);
 	return 0;
 
 	error:
@@ -304,7 +311,7 @@ static void device_disconnect(struct usb_interface *interface) {
 
 	kref_put(&dev->kref, device_delete);
 
-	printk(KERN_INFO "arduino: /dev/ardu%d now disconnected\n", minor);
+	printk(KERN_INFO "arduino: /dev/ttyardu%d now disconnected\n", minor);
 }
 static int __init device_init(void) {
 	int res;
