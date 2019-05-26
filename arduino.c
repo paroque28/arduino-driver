@@ -13,6 +13,8 @@ MODULE_AUTHOR("Pablo Rodriguez Quesada");
 MODULE_DESCRIPTION("An Arduino Serial Module");
 MODULE_VERSION("0.01");
 
+#define BULK_EP_OUT 0x04   //address where arduino device allow write
+#define BULK_EP_IN 0x83	//address where arduino device allow read
 
 static DEFINE_MUTEX(fs_mutex); // Defining a mutex
 #define VENDOR_ID	0x2341
@@ -85,7 +87,7 @@ static struct usb_class_driver device_class = {
 */
 static void device_delete(struct kref *kref )  {
 	struct arduino *dev = to_device_dev(kref);
-
+    printk (KERN_INFO "arduino: Deleting device %d", dev->udev->devnum);
 	usb_put_dev(dev->udev);
 	kfree (dev->bulk_in_buffer);
 	kfree (dev);
@@ -185,7 +187,6 @@ static ssize_t device_write(struct file *file, const char __user *user_buffer, s
 		retval = -ENOMEM;
 		goto error;
 	}
-
 	buf =  usb_alloc_coherent(dev->udev, count, GFP_KERNEL, &urb->transfer_dma);
 	if (!buf) {
 		retval = -ENOMEM;
@@ -229,8 +230,6 @@ static int device_probe(struct usb_interface *interface, const struct usb_device
 	size_t buffer_size;
 	int i;
 	int retval = -ENOMEM;
-	
-	printk(KERN_INFO "arduino: New device connected!\n");
 
 	dev = kmalloc(sizeof(struct arduino), GFP_KERNEL);
 	if (dev == NULL) {
@@ -242,7 +241,7 @@ static int device_probe(struct usb_interface *interface, const struct usb_device
 
 	dev->udev = usb_get_dev(interface_to_usbdev(interface));
 	dev->interface = interface;
-
+    printk(KERN_INFO "arduino: New device connected device number %d \n",dev->udev->devnum);
 	iface_desc = interface->cur_altsetting;
 	for (i = 0; i < iface_desc->desc.bNumEndpoints; ++i) {
 		endpoint = &iface_desc->endpoint[i].desc;
@@ -256,7 +255,7 @@ static int device_probe(struct usb_interface *interface, const struct usb_device
 			dev->bulk_in_endpointAddr = endpoint->bEndpointAddress;
 			dev->bulk_in_buffer = kmalloc(buffer_size, GFP_KERNEL);
 			if (!dev->bulk_in_buffer) {
-				printk(KERN_INFO "arduino: Could not allocate bulk_in_buffer\n");
+				printk(KERN_INFO "arduino: %d Could not allocate bulk_in_buffer\n",dev->udev->devnum);
 				goto error;
 			}
 		}
@@ -267,24 +266,28 @@ static int device_probe(struct usb_interface *interface, const struct usb_device
 		}
 	}
 	if (!(dev->bulk_in_endpointAddr && dev->bulk_out_endpointAddr)) {
-		printk(KERN_INFO "arduino: Could not find both bulk-in and bulk-out endpoints\n");
+		printk(KERN_INFO "arduino: %d Could not find both bulk-in and bulk-out endpoints\n",dev->udev->devnum);
 		goto error;
 	}
+    else {
+        printk(KERN_INFO "arduino: %d bulk-in: %x bulk-out %x\n",dev->udev->devnum, dev->bulk_in_endpointAddr, dev->bulk_out_endpointAddr);
+		
+    }
 
 	usb_set_intfdata(interface, dev);
 
 	retval = usb_register_dev(interface, &device_class);
 	if (retval) {
-		printk(KERN_INFO "arduino: Not able to get a minor for this device.\n");
+		printk(KERN_INFO "arduino: %d Not able to get a minor for this device.\n",dev->udev->devnum);
 		usb_set_intfdata(interface, NULL);
 		goto error;
 	}
 
-	printk(KERN_INFO "arduino: device now attached to /dev/ardu%d\n", interface->minor);
+	printk(KERN_INFO "arduino: %d device now attached to /dev/ardu%d\n", dev->udev->devnum, interface->minor);
 	return 0;
 
 	error:
-	printk(KERN_INFO "arduino: Exiting from error\n");
+	printk(KERN_INFO "arduino: %d Exiting from error\n", dev->udev->devnum);
 	if (dev)    kref_put(&dev->kref, device_delete);
 	return retval;
 }
@@ -313,12 +316,12 @@ static int __init device_init(void) {
 	if (res )
 		printk(KERN_INFO "arduino: usb_register failed. Error number %d\n", res);
 
-	printk(KERN_INFO "arduino: device registered\n");
+	printk(KERN_INFO "arduino: driver registered\n");
 	return res;
 }
 static void __exit device_exit(void) {
  /* Remember — we have to clean up after ourselves. Unregister the character device. */
-	printk(KERN_INFO "arduino: device deregistered\n");
+	printk(KERN_INFO "arduino: driver deregistered\n");
 	usb_deregister(&arduino);
 }
 /* Register module functions */
