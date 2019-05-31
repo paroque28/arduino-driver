@@ -29,18 +29,38 @@ int set_device(char *device ) {
 	}
 }
 
-void write_to_device(char* string, size_t size)  {
-	//Open device file
+size_t write_to_device(char* string, size_t size)  {
 	_dev = fopen(_device, "r+");
 	if(_dev != NULL){
-		//Send coordinates
 		fwrite((const void *)(string), size, 1, _dev);
 		fclose(_dev);
-		printf("Message sent: %s\n", string);
+		return size;
 	}
 	else 	{
 		printf("I/O Error\n");
+		return -1;
 	}
+}
+
+
+void move(int x, int y)  {
+	char *message = (char*)malloc(8 * sizeof(char));
+	sprintf(message, "m%d,%d\n");
+	write_to_device(message,8);
+}
+
+
+void pick()  {
+	char *message = (char*)malloc(2 * sizeof(char));
+	sprintf(message, "p\n");
+	write_to_device(message,2);
+}
+
+
+void drop()  {
+	char *message = (char*)malloc(2 * sizeof(char));
+	sprintf(message, "d\n");
+	write_to_device(message,2);
 }
 
 
