@@ -45,7 +45,7 @@ size_t write_to_device(char* string, size_t size)  {
 
 void move(int x, int y)  {
 	char *message = (char*)malloc(8 * sizeof(char));
-	sprintf(message, "m%d,%d\n");
+	sprintf(message, "m%d,%d\n",x,y);
 	write_to_device(message,8);
 }
 

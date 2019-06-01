@@ -1,5 +1,4 @@
-#include "arduino.h"
-
+#include <finger.h>
 
 int main(void)
 {
